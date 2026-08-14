@@ -19,6 +19,24 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
+# ── Load optional vault path from dev-config.ps1 ─────────────────────────────
+$VaultPath = $null
+if (Test-Path 'dev-config.ps1') {
+    . '.\dev-config.ps1'
+}
+
+$pluginDir = $null
+if ($VaultPath) {
+    $pluginDir = Join-Path $VaultPath '.obsidian\plugins\obsidian-daily-note-copier'
+    New-Item -ItemType Directory -Force -Path $pluginDir | Out-Null
+    # Required by the Hot Reload plugin to watch this directory for changes
+    $null = New-Item -ItemType File -Force -Path (Join-Path $pluginDir '.hotreload')
+    Write-Host "Vault plugin dir: $pluginDir" -ForegroundColor DarkGray
+} else {
+    Write-Host "No dev-config.ps1 found — output goes to build\ only." -ForegroundColor DarkGray
+    Write-Host "Copy dev-config.example.ps1 to dev-config.ps1 and set your vault path for auto-deploy." -ForegroundColor DarkGray
+}
+
 # ── 0. Ensure build/ directory exists ────────────────────────────────────────
 New-Item -ItemType Directory -Force -Path 'build' | Out-Null
 
@@ -60,12 +78,18 @@ try {
 $wasmSize = [math]::Round((Get-Item 'build\plugin.wasm').Length / 1MB, 2)
 Write-Host "    build\plugin.wasm  $wasmSize MB" -ForegroundColor DarkGray
 
-# Touch main.js so Hot Reload picks up the new WASM binary
-if (Test-Path 'build\main.js') { (Get-Item 'build\main.js').LastWriteTime = Get-Date }
+# Copy plugin.wasm and manifest.json to vault and touch main.js there so
+# Hot Reload picks up the new binary without a manual plugin toggle.
+if ($pluginDir) {
+    Copy-Item 'build\plugin.wasm' (Join-Path $pluginDir 'plugin.wasm') -Force
+    Copy-Item 'manifest.json'     (Join-Path $pluginDir 'manifest.json') -Force
+    $mainJs = Join-Path $pluginDir 'main.js'
+    if (Test-Path $mainJs) { (Get-Item $mainJs).LastWriteTime = Get-Date }
+    Write-Host "    Copied to vault plugin dir" -ForegroundColor DarkGray
+}
 
 # ── 2b. Copy manifest.json into build/ ───────────────────────────────────────
 Copy-Item 'manifest.json' 'build\manifest.json' -Force
-Write-Host "    build\manifest.json copied" -ForegroundColor DarkGray
 
 # ── 3. Install npm dependencies ───────────────────────────────────────────────
 if (-not (Test-Path 'node_modules')) {
@@ -77,9 +101,11 @@ if (-not (Test-Path 'node_modules')) {
 }
 
 # ── 4. Build / watch TypeScript ───────────────────────────────────────────────
+# Pass vault path to esbuild so its onEnd plugin can copy main.js after each build.
+if ($VaultPath) { $env:VAULT_PATH = $VaultPath }
+
 if ($Dev) {
     Write-Host '[4/4] Starting esbuild in watch mode (Ctrl-C to stop) ...' -ForegroundColor Cyan
-    Write-Host '      main.js will be written to build\ on every save.' -ForegroundColor DarkGray
     node esbuild.config.mjs
 } else {
     Write-Host '[4/4] Bundling TypeScript (production) ...' -ForegroundColor Cyan
@@ -87,13 +113,7 @@ if ($Dev) {
     if ($LASTEXITCODE -ne 0) { throw "esbuild failed" }
 
     Write-Host ''
-    Write-Host 'Build complete!  Output in build\' -ForegroundColor Green
-    Write-Host ''
-    Write-Host '  build\main.js'
-    Write-Host '  build\manifest.json'
-    Write-Host '  build\plugin.wasm'
-    Write-Host ''
-    Write-Host 'Junction command (run once):' -ForegroundColor Yellow
-    $here = (Get-Location).Path
-    Write-Host "  New-Item -ItemType Junction -Path `"<vault>\.obsidian\plugins\obsidian-daily-note-copier`" -Target `"$here\build`"" -ForegroundColor Yellow
+    Write-Host 'Build complete!' -ForegroundColor Green
 }
+
+Remove-Item Env:\VAULT_PATH -ErrorAction SilentlyContinue

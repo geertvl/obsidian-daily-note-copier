@@ -1,6 +1,9 @@
 node_modules/
 .claude/settings.local.json
 
+# Machine-local vault path — copy dev-config.example.ps1 to create yours
+dev-config.ps1
+
 # All build artifacts live here
 build/
 

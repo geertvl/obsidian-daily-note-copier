@@ -1,8 +1,20 @@
 import esbuild from 'esbuild';
 import process from 'process';
 import builtins from 'builtin-modules';
+import path from 'path';
 
 const prod = process.argv[2] === 'production';
+
+const vaultPluginDir = process.env.VAULT_PATH
+	? path.join(process.env.VAULT_PATH, '.obsidian', 'plugins', 'obsidian-daily-note-copier')
+	: null;
+
+// In dev mode, write main.js directly into the vault plugin directory so
+// Obsidian's own file watcher triggers Hot Reload on every rebuild.
+// In production, write to build/ for distribution.
+const outfile = (!prod && vaultPluginDir)
+	? path.join(vaultPluginDir, 'main.js')
+	: 'build/main.js';
 
 const context = await esbuild.context({
 	entryPoints: ['src/main.ts'],
@@ -31,13 +43,12 @@ const context = await esbuild.context({
 	logLevel: 'info',
 	sourcemap: prod ? false : 'inline',
 	treeShaking: true,
-	outfile: 'build/main.js',
+	outfile,
 });
 
 if (prod) {
 	await context.rebuild();
 	process.exit(0);
 } else {
-	// Watch mode: rebuilds automatically on source changes.
 	await context.watch();
 }
