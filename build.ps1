@@ -60,6 +60,9 @@ try {
 $wasmSize = [math]::Round((Get-Item 'build\plugin.wasm').Length / 1MB, 2)
 Write-Host "    build\plugin.wasm  $wasmSize MB" -ForegroundColor DarkGray
 
+# Touch main.js so Hot Reload picks up the new WASM binary
+if (Test-Path 'build\main.js') { (Get-Item 'build\main.js').LastWriteTime = Get-Date }
+
 # ── 2b. Copy manifest.json into build/ ───────────────────────────────────────
 Copy-Item 'manifest.json' 'build\manifest.json' -Force
 Write-Host "    build\manifest.json copied" -ForegroundColor DarkGray

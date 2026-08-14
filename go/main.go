@@ -14,7 +14,7 @@ func greet(this js.Value, args []js.Value) any {
 	if len(args) > 0 && args[0].Type() == js.TypeString {
 		name = args[0].String()
 	}
-	return fmt.Sprintf("Hello, %s! (from Go WASM v2)", name)
+	return fmt.Sprintf("Hello, %s! (from Go WASM v3)", name)
 }
 
 func main() {
