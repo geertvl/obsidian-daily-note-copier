@@ -1,0 +1,10 @@
+{
+    "id": "obsidian-daily-note-copier",
+    "name": "Daily Note Copier",
+    "version": "1.0.0",
+    "minAppVersion": "1.0.0",
+    "description": "Copy and manage daily notes, powered by Go WebAssembly.",
+    "author": "Your Name",
+    "authorUrl": "",
+    "isDesktopOnly": true
+}

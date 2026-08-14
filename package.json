@@ -1,0 +1,17 @@
+{
+  "name": "obsidian-daily-note-copier",
+  "version": "1.0.0",
+  "description": "Daily Note Copier — Obsidian plugin powered by Go WebAssembly",
+  "main": "main.js",
+  "scripts": {
+    "dev": "powershell -ExecutionPolicy Bypass -File build.ps1 -Dev",
+    "build": "powershell -ExecutionPolicy Bypass -File build.ps1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "builtin-modules": "^4.0.0",
+    "esbuild": "^0.25.0",
+    "obsidian": "latest",
+    "typescript": "^5.0.0"
+  }
+}

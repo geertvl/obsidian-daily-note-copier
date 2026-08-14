@@ -1,0 +1,7 @@
+node_modules/
+
+# All build artifacts live here
+build/
+
+# Copied from GOROOT during build — not checked in
+src/wasm_exec.js
