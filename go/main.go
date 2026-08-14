@@ -3,31 +3,34 @@
 package main
 
 import (
-	"fmt"
+	"encoding/json"
+	"strings"
 	"syscall/js"
 )
 
-// greet is an example Go function callable from JavaScript.
-// Replace or extend this with your actual plugin logic.
-func greet(this js.Value, args []js.Value) any {
-	name := "World"
-	if len(args) > 0 && args[0].Type() == js.TypeString {
-		name = args[0].String()
+// extractLongTodos scans markdown content and returns a JSON array of every
+// line that contains "[LONG]", with trailing whitespace trimmed.
+func extractLongTodos(this js.Value, args []js.Value) any {
+	if len(args) < 1 {
+		return "[]"
 	}
-	return fmt.Sprintf("Hello, %s! (from Go WASM v10)", name)
+	content := args[0].String()
+	var todos []string
+	for _, line := range strings.Split(content, "\n") {
+		if strings.Contains(line, "[LONG]") {
+			todos = append(todos, strings.TrimRight(line, " \t\r"))
+		}
+	}
+	result, _ := json.Marshal(todos)
+	return string(result)
 }
 
 func main() {
-	// Register exported functions on the global JS object.
-	// Add more js.Global().Set(...) calls here as your plugin grows.
-	js.Global().Set("goGreet", js.FuncOf(greet))
+	js.Global().Set("goExtractLongTodos", js.FuncOf(extractLongTodos))
 
-	// Signal to the TypeScript side that Go is initialised and all
-	// exported functions are registered.
 	if resolve := js.Global().Get("__goWasmResolve"); resolve.Type() == js.TypeFunction {
 		resolve.Invoke()
 	}
 
-	// Block forever — the WASM instance must stay alive for JS callbacks.
 	select {}
 }
