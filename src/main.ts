@@ -26,11 +26,9 @@ export default class DailyNoteCopierPlugin extends Plugin {
 			return;
 		}
 
-		const folderPath = this.getDailyNotesFolder();
-		const folder = this.app.vault.getAbstractFileByPath(folderPath || '/');
-
-		if (!(folder instanceof TFolder)) {
-			new Notice(`Daily notes folder not found: "${folderPath}"`);
+		const folder = this.getNotesFolder();
+		if (!folder) {
+			new Notice('Could not determine the daily notes folder. Open a daily note first.');
 			return;
 		}
 
@@ -52,7 +50,7 @@ export default class DailyNoteCopierPlugin extends Plugin {
 		}
 
 		const todoPath = normalizePath(
-			folderPath ? `${folderPath}/TODO.md` : 'TODO.md'
+			folder.isRoot() ? 'TODO.md' : `${folder.path}/TODO.md`
 		);
 
 		if (sections.length === 0) {
@@ -75,9 +73,21 @@ export default class DailyNoteCopierPlugin extends Plugin {
 		new Notice(`TODO.md updated — ${sections.length} note(s) with [LONG] items.`);
 	}
 
-	private getDailyNotesFolder(): string {
+	private getNotesFolder(): TFolder | null {
+		// 1. Use the folder of whichever note is currently open.
+		const activeFile = this.app.workspace.getActiveFile();
+		if (activeFile?.parent) return activeFile.parent;
+
+		// 2. Fall back to the Daily Notes core plugin's configured folder.
 		const plugin = (this.app as any).internalPlugins?.plugins?.['daily-notes'];
-		return plugin?.instance?.options?.folder?.trim() ?? '';
+		const configuredPath = plugin?.instance?.options?.folder?.trim();
+		if (configuredPath) {
+			const folder = this.app.vault.getAbstractFileByPath(configuredPath);
+			if (folder instanceof TFolder) return folder;
+		}
+
+		// 3. Fall back to vault root.
+		return this.app.vault.getRoot();
 	}
 
 	private async initWasm() {

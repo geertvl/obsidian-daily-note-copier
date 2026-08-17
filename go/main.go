@@ -15,7 +15,7 @@ func extractLongTodos(this js.Value, args []js.Value) any {
 		return "[]"
 	}
 	content := args[0].String()
-	var todos []string
+	todos := make([]string, 0)
 	for _, line := range strings.Split(content, "\n") {
 		if strings.Contains(line, "[LONG]") {
 			todos = append(todos, strings.TrimRight(line, " \t\r"))
