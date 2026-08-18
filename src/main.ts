@@ -51,7 +51,7 @@ export default class DailyNoteCopierPlugin extends Plugin {
 			if (cache?.frontmatter?.status === 'archived') continue;
 
 			const content = await this.app.vault.read(file);
-			const longTodos = JSON.parse(goExtractByTag(content, '[LONG]')) as string[];
+			const longTodos = JSON.parse(goExtractByTag(content, '[LT]')) as string[];
 			const ppTodos   = JSON.parse(goExtractByTag(content, '[PP]'))   as string[];
 
 			if (longTodos.length > 0)
