@@ -8,8 +8,13 @@ import (
 	"syscall/js"
 )
 
+func isCompleted(line string) bool {
+	trimmed := strings.TrimLeft(line, " \t")
+	return strings.HasPrefix(trimmed, "- [x]") || strings.HasPrefix(trimmed, "- [X]")
+}
+
 // extractByTag scans markdown content and returns a JSON array of every line
-// that contains the given tag string, with trailing whitespace trimmed.
+// that contains the given tag string and is not a completed checkbox.
 func extractByTag(this js.Value, args []js.Value) any {
 	if len(args) < 2 {
 		return "[]"
@@ -18,7 +23,7 @@ func extractByTag(this js.Value, args []js.Value) any {
 	tag := args[1].String()
 	lines := make([]string, 0)
 	for _, line := range strings.Split(content, "\n") {
-		if strings.Contains(line, tag) {
+		if strings.Contains(line, tag) && !isCompleted(line) {
 			lines = append(lines, strings.TrimRight(line, " \t\r"))
 		}
 	}
