@@ -10,8 +10,8 @@ declare class Go {
 
 // Exported Go functions — extend as you add more in go/main.go.
 
-/** Returns a JSON-encoded string[] of lines containing "[LONG]". */
-declare function goExtractLongTodos(markdownContent: string): string;
+/** Returns a JSON-encoded string[] of lines containing the given tag. */
+declare function goExtractByTag(content: string, tag: string): string;
 
 // Internal readiness hook used by wasm_loader.ts.
 interface Window {

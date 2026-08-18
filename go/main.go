@@ -8,25 +8,26 @@ import (
 	"syscall/js"
 )
 
-// extractLongTodos scans markdown content and returns a JSON array of every
-// line that contains "[LONG]", with trailing whitespace trimmed.
-func extractLongTodos(this js.Value, args []js.Value) any {
-	if len(args) < 1 {
+// extractByTag scans markdown content and returns a JSON array of every line
+// that contains the given tag string, with trailing whitespace trimmed.
+func extractByTag(this js.Value, args []js.Value) any {
+	if len(args) < 2 {
 		return "[]"
 	}
 	content := args[0].String()
-	todos := make([]string, 0)
+	tag := args[1].String()
+	lines := make([]string, 0)
 	for _, line := range strings.Split(content, "\n") {
-		if strings.Contains(line, "[LONG]") {
-			todos = append(todos, strings.TrimRight(line, " \t\r"))
+		if strings.Contains(line, tag) {
+			lines = append(lines, strings.TrimRight(line, " \t\r"))
 		}
 	}
-	result, _ := json.Marshal(todos)
+	result, _ := json.Marshal(lines)
 	return string(result)
 }
 
 func main() {
-	js.Global().Set("goExtractLongTodos", js.FuncOf(extractLongTodos))
+	js.Global().Set("goExtractByTag", js.FuncOf(extractByTag))
 
 	if resolve := js.Global().Get("__goWasmResolve"); resolve.Type() == js.TypeFunction {
 		resolve.Invoke()
