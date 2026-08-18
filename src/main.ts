@@ -40,37 +40,52 @@ export default class DailyNoteCopierPlugin extends Plugin {
 			.sort((a, b) => b.name.localeCompare(a.name)); // newest first
 
 		const sections: string[] = [];
+		const toArchive: TFile[] = [];
 
 		for (const file of files) {
+			// Skip notes already transferred.
+			const cache = this.app.metadataCache.getFileCache(file);
+			if (cache?.frontmatter?.status === 'archived') continue;
+
 			const content = await this.app.vault.read(file);
 			const todos = JSON.parse(goExtractLongTodos(content)) as string[];
 			if (todos.length > 0) {
 				sections.push(`## ${file.basename}\n\n${todos.join('\n')}`);
+				toArchive.push(file);
 			}
 		}
 
-		const todoPath = normalizePath(
-			folder.isRoot() ? 'TODO.md' : `${folder.path}/TODO.md`
-		);
-
 		if (sections.length === 0) {
-			new Notice('No [LONG] TODOs found in daily notes.');
+			new Notice('No new [LONG] TODOs found in daily notes.');
 			return;
 		}
 
-		const output =
-			`# Long-term TODOs\n\n` +
-			`> Auto-generated — run "Sync [LONG] TODOs" to refresh.\n\n` +
-			sections.join('\n\n');
-
+		// Append new sections to TODO.md (or create it).
+		const todoPath = normalizePath(
+			folder.isRoot() ? 'TODO.md' : `${folder.path}/TODO.md`
+		);
 		const existing = this.app.vault.getAbstractFileByPath(todoPath);
 		if (existing instanceof TFile) {
-			await this.app.vault.modify(existing, output);
+			const current = await this.app.vault.read(existing);
+			await this.app.vault.modify(
+				existing,
+				current.trimEnd() + '\n\n' + sections.join('\n\n') + '\n'
+			);
 		} else {
-			await this.app.vault.create(todoPath, output);
+			await this.app.vault.create(
+				todoPath,
+				'# Long-term TODOs\n\n' + sections.join('\n\n') + '\n'
+			);
 		}
 
-		new Notice(`TODO.md updated — ${sections.length} note(s) with [LONG] items.`);
+		// Mark source notes as archived so they are not transferred again.
+		for (const file of toArchive) {
+			await this.app.fileManager.processFrontMatter(file, (fm) => {
+				fm.status = 'archived';
+			});
+		}
+
+		new Notice(`TODO.md updated — ${toArchive.length} note(s) archived.`);
 	}
 
 	private getNotesFolder(): TFolder | null {
